@@ -1,0 +1,504 @@
+
+DROP PROCEDURE IF EXISTS FIND_WINNING_APPLICATION;
+DELIMITER $
+ 
+CREATE PROCEDURE FIND_WINNING_APPLICATION()
+BEGIN
+DECLARE appId INT(11);
+    DECLARE finishedFlag INT DEFAULT 0;
+    DECLARE score_final INT(3);
+    DECLARE candidateId VARCHAR(30);
+    DECLARE SubmissionDate DATE;
+    DECLARE winningAppId INT(11);
+    DECLARE earlySubmissionDate DATE; 
+    DECLARE maxScore INT(3);
+    
+    DECLARE appCursor CURSOR FOR 
+        SELECT application_id, score, application_date FROM applications WHERE state = 'COMPLETE';
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET finishedFlag = 1;
+
+    OPEN appCursor;
+
+  SET maxScore = 0;
+
+    appLoop: LOOP
+        IF finishedFlag THEN
+            LEAVE appLoop;
+        END IF;
+        
+        FETCH appCursor INTO appId, score_final, SubmissionDate;
+        
+         IF (score_final > maxScore) OR (score_final = maxScore AND SubmissionDate < earlySubmissionDate) THEN
+            SET maxScore = score_final;
+            SET winningAppId = appId;
+            SET earlySubmissionDate = SubmissionDate;
+        END IF;
+        
+        INSERT INTO applications_log (state, evaluator1,appId, evaluator2, cand_id, score, job_id) SELECT state, evaluator1, application_id, evaluator2, cand_id, score, job_id
+FROM applications WHERE application_id = appId AND (state = 'COMPLETE' OR state = 'WIN');
+DELETE FROM applications WHERE application_id = appId AND (state = 'COMPLETE' OR state = 'WIN');
+        
+END LOOP;
+
+UPDATE applications_log SET state = 'WIN' WHERE winningAppId = appId;
+SELECT winningAppId;
+
+CLOSE appCursor;
+
+END $
+
+DELIMITER ;
+
+
+
+DROP PROCEDURE IF EXISTS EvaluateApplications;
+
+DELIMITER $
+
+CREATE PROCEDURE EvaluateApplications()
+BEGIN
+    DECLARE appId INT(11);
+    DECLARE finishedFlag INT DEFAULT 0;
+    DECLARE bathmida_procedure VARCHAR(30);
+    DECLARE SCORE_1 INT(3);
+    DECLARE SCORE_2 INT(3);
+    DECLARE candidateId VARCHAR(30);
+    DECLARE scoreAvg FLOAT;
+    DECLARE SubmissionDate DATE;
+    DECLARE degreePoints INT; 
+
+    DECLARE appCursor CURSOR FOR 
+        SELECT application_id, cand_id FROM applications WHERE state = 'ACTIVE';
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET finishedFlag = 1;
+
+    OPEN appCursor;
+
+    appLoop: LOOP
+        IF finishedFlag THEN
+            LEAVE appLoop;
+        END IF;
+        
+        FETCH appCursor INTO appId, candidateId;
+        
+    SELECT bathmida INTO bathmida_procedure FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma WHERE candidateId = cand_username;
+        
+      SELECT COUNT(*) +
+      (SELECT COUNT(*) FROM languages WHERE candidateId = candid) +
+               (SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma WHERE candidateId = cand_username AND  bathmida_procedure = 'BSc') +
+               ((SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma WHERE candidateId = cand_username AND bathmida_procedure = 'MSc') * 2) +
+               ((SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma  WHERE candidateId = cand_username AND bathmida_procedure = 'PhD') * 3)
+      INTO degreePoints FROM project WHERE candidateId = candid;
+      
+      SELECT score1, score2, score INTO SCORE_1, SCORE_2, scoreAvg FROM applications WHERE application_id = appId;
+
+        SET SCORE_1 = IFNULL(SCORE_1, degreePoints),
+        SCORE_2 = IFNULL(SCORE_2, degreePoints);
+        
+        SELECT (SCORE_1 + SCORE_2) / 2 INTO scoreAvg;
+    
+        UPDATE applications SET score = scoreAvg, state = 'COMPLETE' WHERE application_id = appId;
+
+    
+    END LOOP;
+
+    CLOSE appCursor;
+    
+CALL FIND_WINNING_APPLICATION();
+    
+END $
+
+DELIMITER ; 
+
+
+
+
+DELIMITER $
+
+CREATE TRIGGER degree_after_insert
+AFTER INSERT ON degree
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'INSERT', 'degree', CONCAT('New record added: titlos = ', NEW.titlos, ', idryma = ', NEW.idryma));
+
+END;
+
+CREATE TRIGGER degree_after_update
+AFTER UPDATE ON degree
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'UPDATE', 'degree', CONCAT('Record updated: titlos = ', NEW.titlos, ', idryma = ', NEW.idryma));
+END;
+
+CREATE TRIGGER degree_after_delete
+AFTER DELETE ON degree
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'DELETE', 'degree', CONCAT('Record deleted: titlos = ', OLD.titlos, ', idryma = ', OLD.idryma));
+END;
+
+CREATE TRIGGER user_after_insert
+AFTER INSERT ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'INSERT', 'user', CONCAT('New user added: username = ', NEW.username));
+END;
+
+CREATE TRIGGER user_after_update
+AFTER UPDATE ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'UPDATE', 'user', CONCAT('User updated: username = ', NEW.username));
+END;
+
+CREATE TRIGGER user_after_delete
+AFTER DELETE ON user
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'DELETE', 'user', CONCAT('User deleted: username = ', OLD.username));
+END;
+
+CREATE TRIGGER job_after_insert
+AFTER INSERT ON job
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'INSERT', 'job', CONCAT('New job added: id = ', NEW.id));
+END;
+
+CREATE TRIGGER job_after_update
+AFTER UPDATE ON job
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'UPDATE', 'job', CONCAT('Job updated: id = ', NEW.id));
+END;
+
+CREATE TRIGGER job_after_delete
+AFTER DELETE ON job
+FOR EACH ROW
+BEGIN
+    INSERT INTO admin_actions_log (admin_username, action, table_name, details)
+    VALUES (CURRENT_USER(), 'DELETE', 'job', CONCAT('Job deleted: id = ', OLD.id));
+
+END$
+
+DELIMITER ;
+
+
+DROP TRIGGER IF EXISTS application_limitations;
+
+DELIMITER $
+
+CREATE TRIGGER application_limitations
+BEFORE INSERT ON applications
+FOR EACH ROW
+BEGIN
+  DECLARE job_start_date DATE;
+  DECLARE active_applications INT;
+
+  SELECT start_date INTO job_start_date FROM JOB WHERE id = NEW.job_id;
+  IF NEW.application_date > DATE_SUB(job_start_date, INTERVAL 15 DAY) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'New applications can only be created up to 15 days before the start date of the job.';
+  END IF;
+
+  SELECT COUNT(*) INTO active_applications FROM applications
+  WHERE cand_id = NEW.cand_id AND state = 'ACTIVE';
+  IF active_applications >= 3 AND NEW.state = 'ACTIVE' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'An applicant cannot have more than 3 active applications.';
+  END IF;
+
+  IF NEW.state = 'CANCELED' AND NEW.application_date > DATE_SUB(job_start_date, INTERVAL 10 DAY) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'An applicant can only cancel an application up to 10 days before the start date of the job.';
+  END IF;
+
+END;
+
+$
+
+DELIMITER ;
+
+DELIMITER $
+
+CREATE TRIGGER application_limitations_before_update
+BEFORE UPDATE ON applications
+FOR EACH ROW
+BEGIN
+  DECLARE job_start_date DATE;
+  DECLARE active_applications INT;
+
+  SELECT start_date INTO job_start_date FROM JOB WHERE id = NEW.job_id;
+  
+  IF NEW.application_date > DATE_SUB(job_start_date, INTERVAL 15 DAY) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'New applications can only be created up to 15 days before the start date of the job.';
+  END IF;
+
+  SELECT COUNT(*) INTO active_applications FROM applications
+  WHERE cand_id = NEW.cand_id AND state = 'ACTIVE';
+  
+  IF active_applications >= 3 AND NEW.state = 'ACTIVE' THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'An applicant cannot have more than 3 active applications.';
+  END IF;
+
+  IF NEW.state = 'CANCELED' AND NEW.application_date > DATE_SUB(job_start_date, INTERVAL 10 DAY) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'An applicant can only cancel an application up to 10 days before the start date of the job.';
+  END IF;
+
+END$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS insert_application_logs_10000;
+
+DELIMITER $
+
+CREATE PROCEDURE insert_application_logs_10000()
+BEGIN
+  DECLARE i INT DEFAULT 1;
+  DECLARE rand_user VARCHAR(30);
+  DECLARE rand_evaluator1 VARCHAR(30);
+  DECLARE rand_evaluator2 VARCHAR(30);
+  DECLARE rand_score FLOAT;
+  DECLARE rand_job_id INT;
+  DECLARE rand_state ENUM('WIN', 'COMPLETE', 'CANCELED');
+
+  WHILE i <= 10000 DO
+    SET rand_state = (SELECT CASE FLOOR(RAND() * 3)
+                                WHEN 0 THEN 'WIN'
+                                WHEN 1 THEN 'COMPLETE'
+                                ELSE 'CANCELED' END);
+    SET rand_job_id = (SELECT id FROM job ORDER BY RAND() LIMIT 1);
+    SET rand_user = (SELECT username FROM user ORDER BY RAND() LIMIT 1);
+    SET rand_evaluator1 = (SELECT username FROM evaluator ORDER BY RAND() LIMIT 1);
+    SET rand_evaluator2 = (SELECT username FROM evaluator ORDER BY RAND() LIMIT 1);
+    SET rand_score = RAND() * 20;
+
+    INSERT INTO applications_log (
+      state,
+      job_id,
+      appId,
+      score,
+      cand_id,
+      evaluator1,
+      evaluator2
+    ) VALUES (
+      rand_state,
+      rand_job_id, 
+      i,
+      rand_score,
+      rand_user,
+      rand_evaluator1,
+      rand_evaluator2
+    );
+    
+    SET i = i + 1;
+  END WHILE;
+
+END $
+
+DELIMITER ;
+
+
+
+
+
+DELIMITER $
+
+CREATE PROCEDURE checkEval(
+    IN chevaluator VARCHAR(30),
+    IN chemployee VARCHAR(30),
+    IN chjob_id INT,
+    OUT chvathmos INT
+)
+BEGIN
+    DECLARE chappId INT(11);
+    DECLARE chevaluator1 VARCHAR(30);
+    DECLARE chevaluator2 VARCHAR(30);
+    DECLARE chscore1 INT(3);
+    DECLARE chscore2 INT(3);
+    DECLARE chscore INT(3);
+
+    SELECT evaluator1, evaluator2, score1, score2, score
+    INTO chevaluator1, chevaluator2, chscore1, chscore2, chscore
+    FROM applications
+    WHERE chjob_id = job_id AND chemployee = cand_id;
+
+    IF (chevaluator != chevaluator1) AND (chevaluator != chevaluator2) THEN
+        SET chvathmos = 0;
+    ELSEIF (chevaluator = chevaluator1) AND (chscore1 IS NULL) THEN
+        SELECT COUNT(*) +
+               (SELECT COUNT(*) FROM languages WHERE chemployee = candid) +
+               (SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma WHERE chemployee = cand_username AND  bathmida = 'BSc') +
+               ((SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma WHERE chemployee = cand_username AND bathmida = 'MSc') * 2) +
+               ((SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma  WHERE chemployee = cand_username AND bathmida = 'PhD') * 3)
+        INTO chvathmos FROM project WHERE chemployee = candid;
+    ELSEIF (chevaluator = chevaluator2) AND (chscore2 IS NULL) THEN
+        SELECT COUNT(*) +
+               (SELECT COUNT(*) FROM languages WHERE chemployee = candid) +
+               (SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma  WHERE chemployee = cand_username AND bathmida = 'BSc') +
+               ((SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma WHERE chemployee = cand_username AND bathmida = 'MSc') * 2) +
+               ((SELECT COUNT(*) FROM has_degree INNER JOIN degree ON degree.titlos = has_degree.degr_title AND degree.idryma = has_degree.degr_idryma WHERE chemployee = cand_username AND bathmida = 'PhD') * 3)
+        INTO chvathmos FROM project WHERE chemployee = candid;
+    ELSEIF chevaluator = chevaluator1 THEN SET chvathmos = chscore1;
+    ELSE SET chvathmos = chscore2;
+    END IF;
+
+SELECT chvathmos;
+END;
+$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS application_stage;
+ DELIMITER $
+ 
+CREATE PROCEDURE application_stage(
+    IN ap_username VARCHAR(30),
+    IN ap_jobid INT(11),
+    IN ap_char VARCHAR(2),
+    OUT message_ap VARCHAR(50)
+)
+BEGIN
+    DECLARE state_app VARCHAR(10);
+    DECLARE evaluator_1 VARCHAR(30);
+    DECLARE evaluator_2 VARCHAR(30);
+
+    SELECT state, evaluator1, evaluator2 
+    INTO state_app, evaluator_1, evaluator_2
+    FROM applications
+    WHERE ap_username = cand_id AND ap_jobid = job_id;
+    
+
+    CASE 
+        WHEN ap_char = 'i' THEN
+            IF state_app IS NOT NULL THEN
+                SET message_ap = "APPLICATION IS LIVE!";
+            ELSE
+           SELECT username INTO evaluator_1 FROM evaluator ORDER BY RAND() LIMIT 1;
+           SELECT username INTO evaluator_2 FROM evaluator ORDER BY RAND() LIMIT 1;
+            INSERT INTO applications 
+              VALUES ('ACTIVE', ap_jobid, ap_username, CURDATE(), DEFAULT, evaluator_1, evaluator_2, NULL, NULL, NULL);
+            END IF;
+
+        WHEN ap_char = 'c' THEN
+            IF state_app = 'CANCELED' THEN
+                SET message_ap = "ALREADY CANCELED";
+            ELSEIF state_app IS NULL THEN
+                    SET message_ap = "APPLICATION DOES NOT EXIST!";
+                ELSE
+                    UPDATE applications SET state = 'CANCELED' WHERE ap_username = cand_id AND ap_jobid = job_id;
+                END IF;
+
+        WHEN ap_char = 'a' THEN
+            IF state_app = 'ACTIVE' THEN
+                SET message_ap = "ALREADY ACTIVE";
+            ELSEIF state_app IS NULL THEN
+                    SET message_ap = "APPLICATION DOES NOT EXIST!";
+                ELSE
+                    UPDATE applications SET state = 'ACTIVE' WHERE ap_username = cand_id AND ap_jobid = job_id;
+            END IF;
+    END CASE;
+    
+    SELECT message_ap;
+    
+END $
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS employee_range;
+DELIMITER $
+
+CREATE PROCEDURE employee_range(
+    IN thahmos1 FLOAT,
+    IN thahmos2 FLOAT,
+    OUT employee_user VARCHAR(30),
+    OUT employee_jobid INT(11)
+)
+BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE thahmos FLOAT;
+    DECLARE employ_user VARCHAR(30);
+    DECLARE employ_jobid INT;
+
+    DECLARE cur CURSOR FOR
+        SELECT score, job_id, cand_id
+        FROM applications_log
+        WHERE score BETWEEN LEAST(thahmos2, thahmos1) AND GREATEST(thahmos2, thahmos1);
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN cur;
+
+    read_loop: LOOP
+        FETCH cur INTO thahmos, employ_jobid, employ_user;
+
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        SET employee_user = employ_user;
+        SET employee_jobid = employ_jobid;
+
+        SELECT employee_user, employee_jobid, thahmos;
+
+    END LOOP;
+
+    CLOSE cur;
+
+END$
+
+DELIMITER ;
+
+
+DROP PROCEDURE IF EXISTS evaluator_applies;
+DELIMITER $
+
+CREATE PROCEDURE evaluator_applies(
+    IN evaluator_username VARCHAR(30),
+    OUT employee_user VARCHAR(30),
+    OUT employee_jobid INT(11)
+)
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE cur CURSOR FOR
+        SELECT cand_id, job_id
+        FROM applications_log
+        WHERE evaluator1 = evaluator_username OR evaluator2 = evaluator_username;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    SET employee_user = '';
+    SET employee_jobid = 0;
+
+    OPEN cur;
+    read_loop: LOOP
+        FETCH cur INTO employee_user, employee_jobid;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        SELECT employee_user, employee_jobid;
+    END LOOP;
+    CLOSE cur;
+END$
+
+DELIMITER ;
+
+
+CREATE INDEX idx_score ON applications_log (score);
+

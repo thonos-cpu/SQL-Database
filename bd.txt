@@ -1,0 +1,188 @@
+CREATE TABLE degree(
+ titlos VARCHAR(150) DEFAULT 'unknown' NOT NULL,
+ idryma VARCHAR(150) DEFAULT 'unknown' NOT NULL,
+ bathmida ENUM('BSc', 'MSc', 'PhD'),
+ PRIMARY KEY(titlos, idryma)
+ );
+
+CREATE TABLE has_degree(
+ degr_title VARCHAR(150) NOT NULL DEFAULT 'unknown',
+ degr_idryma VARCHAR(150) NOT NULL DEFAULT 'unknown',
+ cand_username VARCHAR(30) NOT NULL,
+ etos YEAR(4) NOT NULL,
+ grade FLOAT NOT NULL,
+ PRIMARY KEY(cand_username),
+ CONSTRAINT DGR
+ FOREIGN KEY(degr_title, degr_idryma) REFERENCES degree(titlos, idryma)
+ ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE languages(
+ candid VARCHAR(30) NOT NULL ,
+ lang set('EN', 'FR', 'SP', 'GE', 'CH', 'GR'),
+ PRIMARY KEY(candid)
+ );
+
+ 
+
+CREATE TABLE user(
+ username VARCHAR(30) NOT NULL,
+ password VARCHAR(20) NOT NULL,
+ name VARCHAR(25) NOT NULL DEFAULT 'unknown',
+ lastname VARCHAR(35) NOT NULL DEFAULT 'unknown',
+ reg_date DATETIME NOT NULL,
+ email VARCHAR(30) NOT NULL DEFAULT 'unknown',
+ PRIMARY KEY(username),
+ UNIQUE(email)
+ );
+ 
+ 
+CREATE TABLE etairia(
+ AFM CHAR(9) NOT NULL,
+ DOY VARCHAR(30) NOT NULL DEFAULT 'unknown',
+ name VARCHAR(35) NOT NULL DEFAULT 'unknown',
+ tel VARCHAR(10) NOT NULL DEFAULT '0',
+ street VARCHAR(15) NOT NULL DEFAULT 'unknown',
+ num INT(11) NOT NULL DEFAULT '0',
+ city VARCHAR(45) NOT NULL DEFAULT 'unknown',
+ country VARCHAR(15) NOT NULL DEFAULT 'unknown',
+ PRIMARY KEY (AFM)
+);
+
+ 
+CREATE TABLE evaluator(
+ username VARCHAR(30) NOT NULL,
+ exp_years TINYINT(4) NOT NULL,
+ firm CHAR(9) NOT NULL,
+ PRIMARY KEY (username),
+ CONSTRAINT EVLTRCOMP
+ FOREIGN KEY (firm) REFERENCES etairia(AFM)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+ CONSTRAINT USR
+ FOREIGN KEY (username) REFERENCES user(username)
+ ON DELETE CASCADE ON UPDATE CASCADE
+ );
+
+
+
+CREATE TABLE employee(
+ username VARCHAR(30) NOT NULL,
+ bio TEXT NOT NULL,
+ sistatikes VARCHAR(35) NULL DEFAULT 'NONE',
+ certificates VARCHAR(35) NOT NULL DEFAULT 'NONE',
+ PRIMARY KEY(username),
+ CONSTRAINT EMPLANG
+ FOREIGN KEY (username) REFERENCES languages(candid)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+ CONSTRAINT EMPDGR
+ FOREIGN KEY (username) REFERENCES has_degree(cand_username)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+ CONSTRAINT USER
+ FOREIGN KEY (username) REFERENCES user(username)
+ ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE project(
+ candid varchar(30) NOT NULL,
+ num TINYINT(4) NOT NULL,
+ descr TEXT NOT NULL,
+ url varchar(60) NOT NULL DEFAULT 'NONE',
+ PRIMARY KEY(num),
+  CONSTRAINT EMPLPRJCT
+ FOREIGN KEY (candid) REFERENCES employee(username)
+ ON DELETE CASCADE ON UPDATE CASCADE
+ );
+  
+ CREATE TABLE subject(
+ title VARCHAR(36) NOT NULL,
+ descr TINYTEXT NOT NULL,
+ belongs_to VARCHAR(36),
+ PRIMARY KEY(title)
+ );
+ 
+CREATE TABLE requires(
+ job_id INT(11) NOT NULL DEFAULT '0',
+ subject_title VARCHAR(36),
+ PRIMARY KEY(job_id),
+  CONSTRAINT SBJCT
+ FOREIGN KEY (subject_title) REFERENCES subject(title)
+ ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE JOB(
+ id INT(11) NOT NULL DEFAULT '0',
+ start_date DATE NOT NULL,
+ salary FLOAT NOT NULL,
+ position VARCHAR(60) NOT NULL DEFAULT 'unknown',
+ edra VARCHAR(60) NOT NULL DEFAULT 'unknown',
+ evaluator VARCHAR(30) NOT NULL DEFAULT 'unknown',
+ announce_date DATETIME NOT NULL,
+ submission_date DATE NOT NULL,
+ PRIMARY KEY(id),
+ CONSTRAINT EVALUATION
+ FOREIGN KEY (evaluator) REFERENCES evaluator(username)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT RQRSID
+FOREIGN KEY (id) REFERENCES requires(job_id)
+ ON DELETE CASCADE ON UPDATE CASCADE
+ );
+
+DROP TABLE IF EXISTS applications;
+CREATE TABLE applications(
+ state ENUM('WIN', 'COMPLETE', 'CANCELED', 'ACTIVE'),
+ job_id INT(11) NOT NULL DEFAULT '0',
+ cand_id VARCHAR(30) NOT NULL,
+ application_date DATE NOT NULL,
+ application_id INT(11) AUTO_INCREMENT UNIQUE,
+ evaluator1 VARCHAR(30),
+ evaluator2 VARCHAR(30),
+ score1 INT(3),
+ score2 INT(3),
+ score FLOAT(3),
+ PRIMARY KEY(application_id),
+ CONSTRAINT APPJOBID
+ FOREIGN KEY (job_id) REFERENCES job(id)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+ CONSTRAINT APPEVAL1
+ FOREIGN KEY (evaluator1) REFERENCES evaluator(username)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+CONSTRAINT APPEVAL2
+ FOREIGN KEY (evaluator2) REFERENCES evaluator(username)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+CONSTRAINT APPCAND
+ FOREIGN KEY (cand_id) REFERENCES user(username)
+ ON DELETE CASCADE ON UPDATE CASCADE
+ );
+ 
+ 
+DROP TABLE IF EXISTS applications_log;
+ CREATE TABLE applications_log(
+ state ENUM('WIN', 'COMPLETE', 'CANCELED', 'ACTIVE'),
+ job_id INT(11) NOT NULL DEFAULT '0',
+ appId INT(11) NOT NULL,
+ score FLOAT(3),
+ cand_id VARCHAR(30) NOT NULL,
+ evaluator1 VARCHAR(30) NOT NULL,
+ evaluator2 VARCHAR(30) NOT NULL,
+ PRIMARY KEY(appId)
+ );
+ 
+CREATE TABLE admins(
+ username VARCHAR(30),
+ start_date DATE NOT NULL,
+ end_date DATE NULL,
+ PRIMARY KEY(username), 
+ CONSTRAINT USRADMIN
+ FOREIGN KEY (username) REFERENCES user(username)
+ ON DELETE CASCADE ON UPDATE CASCADE,
+);
+
+
+CREATE TABLE admin_actions_log (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    admin_username VARCHAR(30) NOT NULL,
+    action ENUM('INSERT', 'UPDATE', 'DELETE') NOT NULL,
+    table_name VARCHAR(50) NOT NULL,
+    details TEXT
+);

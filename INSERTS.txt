@@ -1,0 +1,127 @@
+
+-- Insert values into 'degree' table
+INSERT INTO degree (titlos, idryma, bathmida) VALUES 
+('Computer Science', 'University A', 'BSc'),
+('Data Science', 'University B', 'MSc'),
+('Electrical Engineering', 'University C', 'PhD'),
+('Business Administration', 'University D', 'BSc'),
+('Mathematics', 'University E', 'PhD'),
+('Chemistry', 'University F', 'MSc'),
+('Physics', 'University G', 'BSc'),
+('Psychology', 'University H', 'MSc'),
+('Environmental Science', 'University I', 'PhD'),
+('Economics', 'University J', 'BSc');
+
+-- Insert values into 'has_degree' table
+INSERT INTO has_degree (degr_title, degr_idryma, cand_username, etos, grade) VALUES 
+('Computer Science', 'University A', 'john_doe', 2020, 3.8),
+('Data Science', 'University B', 'jane_smith', 2019, 4.2),
+('Electrical Engineering', 'University C', 'bob_jones', 2018, 3.5),
+('Business Administration', 'University D', 'alice_wilson', 2021, 4.0),
+('Mathematics', 'University E', 'peter_brown', 2017, 3.9),
+('Chemistry', 'University F', 'susan_white', 2019, 3.7),
+('Physics', 'University G', 'david_green', 2020, 4.1),
+('Psychology', 'University H', 'emily_davis', 2018, 3.6),
+('Environmental Science', 'University I', 'michael_smith', 2017, 4.3),
+('Economics', 'University J', 'olivia_jones', 2019, 3.8);
+
+-- Insert values into 'languages' table
+INSERT INTO languages (candid, lang) VALUES 
+('john_doe', 'EN,FR,SP'),
+('jane_smith', 'EN,GE'),
+('bob_jones', 'EN,CH'),
+('alice_wilson', 'FR,GE'),
+('peter_brown', 'SP,GR'),
+('susan_white', 'EN'),
+('david_green', 'FR,SP'),
+('emily_davis', 'GR'),
+('michael_smith', 'EN,CH'),
+('olivia_jones', 'SP,GR');
+
+-- Insert values into 'user' table
+INSERT INTO user (username, password, name, lastname, reg_date, email) VALUES 
+('john_doe', 'password1', 'John', 'Doe', '2023-01-01 12:00:00', 'john.doe@email.com'),
+('jane_smith', 'password2', 'Jane', 'Smith', '2023-01-02 14:30:00', 'jane.smith@email.com'),
+('bob_jones', 'password3', 'Bob', 'Jones', '2023-01-03 10:45:00', 'bob.jones@email.com'),
+('alice_wilson', 'password4', 'Alice', 'Wilson', '2023-01-04 08:15:00', 'alice.wilson@email.com'),
+('peter_brown', 'password5', 'Peter', 'Brown', '2023-01-05 16:20:00', 'peter.brown@email.com'),
+('susan_white', 'password6', 'Susan', 'White', '2023-01-06 11:55:00', 'susan.white@email.com'),
+('david_green', 'password7', 'David', 'Green', '2023-01-07 09:30:00', 'david.green@email.com'),
+('emily_davis', 'password8', 'Emily', 'Davis', '2023-01-08 13:10:00', 'emily.davis@email.com'),
+('michael_smith', 'password9', 'Michael', 'Smith', '2023-01-09 15:40:00', 'michael.smith@email.com'),
+('olivia_jones', 'password10', 'Olivia', 'Jones', '2023-01-10 07:25:00', 'olivia.jones@email.com');
+
+-- Insert values into 'etairia' table
+INSERT INTO etairia (AFM, DOY, name, tel, street, city, country) VALUES 
+('123456789', 'DOY1', 'Company A', '1234567890', 'Main Street', 'City A', 'Country A'),
+('234567890', 'DOY2', 'Company B', '2345678901', 'Broadway', 'City B', 'Country B'),
+('345678901', 'DOY3', 'Company C', '3456789012', 'High Street', 'City C', 'Country C'),
+('456789012', 'DOY4', 'Company D', '4567890123', 'Park Avenue', 'City D', 'Country D'),
+('567890123', 'DOY5', 'Company E', '5678901234', 'Oak Street', 'City E', 'Country E');
+
+-- Insert values into 'evaluator' table
+INSERT INTO evaluator (username, exp_years, firm) VALUES 
+('john_doe', 5, '123456789'),
+('jane_smith', 7, '234567890'),
+('bob_jones', 4, '345678901'),
+('alice_wilson', 8, '456789012'),
+('peter_brown', 6, '567890123');
+
+-- Insert values into 'employee' table
+INSERT INTO employee (username, bio, sistatikes, certificates) VALUES 
+('john_doe', 'Experienced software developer.', 'Team player', 'Java Certification'),
+('jane_smith', 'Data scientist with a passion for machine learning.', 'Detail-oriented', 'Data Science Certification'),
+('bob_jones', 'Electrical engineer with expertise in power systems.', 'Analytical thinker', 'Electrical Engineering'),
+('alice_wilson', 'Business administrator with strong leadership skills.', 'Strategic planner', 'MBA Certification'),
+('peter_brown', 'Mathematics enthusiast with a knack for problem-solving.', 'Logical thinker', 'Mathematics Certification');
+
+-- Insert values into 'project' table
+INSERT INTO project (candid, num, descr, url) VALUES 
+('john_doe', 1, 'Developing a web application for online shopping.', 'https://example.com/project1'),
+('jane_smith', 2, 'Analyzing customer behavior using machine learning algorithms.', 'https://example.com/project2'),
+('bob_jones', 3, 'Designing a sustainable energy system for urban areas.', 'https://example.com/project3'),
+('alice_wilson', 4, 'Implementing a strategic plan for business growth.', 'https://example.com/project4'),
+('peter_brown', 5, 'Researching mathematical models for optimization.', 'https://example.com');
+
+
+-- Insert values into 'subject' table
+INSERT INTO subject (title, descr, belongs_to) VALUES 
+('Math101', 'Introduction to Calculus', 'CS101'),
+('CS101', 'Introduction to Programming', 'CS101'),
+('PHY201', 'Modern Physics', 'CS101'),
+('CS201', 'Data Structures and Algorithms', 'CS101'),
+('BUS101', 'Principles of Marketing', 'CS101'),
+('MKT201', 'Digital Marketing', 'CS101'),
+('ENG101', 'English Composition', 'CS101'),
+('GER101', 'German Language Basics', 'CS101'),
+('ENV101', 'Environmental Science Fundamentals', 'CS101'),
+('PSY101', 'Introduction to Psychology', 'CS101');
+
+-- Insert values into 'requires' table
+INSERT INTO requires (job_id, subject_title) VALUES 
+(1, 'CS101'),
+(0, 'MKT201'),
+(2, 'PHY201'),
+(3, 'BUS101'),
+(30, 'ENV101'),
+(4, 'CS201'),
+(40, 'PSY101'),
+(50, 'ENG101'),
+(5, 'GER101'),
+(51, 'ENV101');
+
+-- Insert values into 'JOB' table
+INSERT INTO JOB (id, start_date, salary, position, edra, evaluator, announce_date, submission_date) VALUES 
+('1', '2023-02-01', 60000, 'Software Engineer', 'City A', 'john_doe', '2023-01-15 10:00:00', '2023-02-15'),
+('2', '2023-03-01', 70000, 'Data Scientist', 'City B', 'jane_smith', '2023-01-20 11:30:00', '2023-03-01'),
+('3', '2023-04-01', 80000, 'Electrical Engineer', 'City C', 'bob_jones', '2023-01-25 13:45:00', '2023-04-01'),
+('4', '2023-05-01', 90000, 'Business Analyst', 'City D', 'alice_wilson', '2023-01-30 15:15:00', '2023-05-01'),
+('5', '2023-06-01', 100000, 'Mathematician', 'City E', 'peter_brown', '2023-02-01 17:30:00', '2023-06-01');
+
+-- Insert values into 'applications' table
+INSERT INTO applications (state, job_id, cand_id, application_date, application_id, evaluator1, evaluator2, score1, score2, score) VALUES 
+('ACTIVE', 1, 'john_doe', '2023-01-10', 100, 'jane_smith', 'bob_jones', 15, NULL, DEFAULT),
+('ACTIVE', 1, 'jane_smith', '2022-02-02', 20, 'bob_jones', 'alice_wilson', NULL, 18, DEFAULT),
+('ACTIVE', 1, 'bob_jones', '2022-02-03', 3, 'alice_wilson', 'peter_brown', 11, 14, DEFAULT),
+('ACTIVE', 1, 'alice_wilson', '2022-02-04', 4, 'peter_brown', 'john_doe', 19, 17, DEFAULT),
+('ACTIVE', 1, 'peter_brown', '2022-02-05', 5, 'john_doe', 'jane_smith', 19, 17, DEFAULT);
